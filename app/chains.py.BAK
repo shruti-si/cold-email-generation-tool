@@ -1,0 +1,47 @@
+import os
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.exceptions import OutputParseException
+from dotenv import load_dotenv 
+
+load_dotenv()
+
+class Chain:
+    def __init__(self):
+        self.llm = ChatGroq(
+    temperature=0,
+    groq_api_key = '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',
+    model="llama3-8b-8192"
+    )
+        
+    def extract_jobs(self, cleaned_text):
+        prompt_extract = PromptTemplate.from_template(
+         """
+         ### SCRAPED TEXT FROM WEBSITE:
+        {page_data}
+        ### INSTRUCTION:
+        The scraped text is from the career's page of a website.
+        Your job is to extract a SINGLE job posting and return it in JSON format containing the following keys: 'role',
+        'experience', 'skills' and 'description'.
+        Only return the valid JSON for a single job posting.
+        ### VALID JSON(NO PREAMBLE):
+    """
+)
+
+        chain_extract = prompt_extract | self.llm
+        res = chain_extract.invoke(input={"page_data": cleaned_text})
+
+# Parse the JSON string to a Python dictionary
+import json
+try:
+    job = json.loads(res.content)
+    print("Job posting:")
+    print(job)
+    print("Skills:", job.get('skills', 'No skills listed'))
+except json.JSONDecodeError:
+    print("Failed to parse JSON. Raw content:")
+    print(res.content)
+
+if __name__ == "__main__":
+    print(os.getenv("GROQ_API_KEY"))
